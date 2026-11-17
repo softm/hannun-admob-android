@@ -56,6 +56,7 @@ public final class HannunAds {
     private Runnable pendingExitResolved;
     private boolean initialized;
     private boolean destroyed;
+    private boolean suppressed;
     private boolean resumed;
     private boolean interstitialLoading;
     private boolean interstitialScheduled;
@@ -117,8 +118,35 @@ public final class HannunAds {
         });
     }
 
+    /** Temporarily removes and stops ads for safety-critical or distraction-free modes. */
+    public void setSuppressed(boolean value) {
+        if (destroyed || suppressed == value) return;
+        suppressed = value;
+        handler.removeCallbacksAndMessages(null);
+        interstitialScheduled = false;
+        if (value) {
+            destroyBottomAd();
+            host.removeAllViews();
+            interstitialAd = null;
+            interstitialLoading = false;
+            if (exitAd != null) exitAd.destroy();
+            exitAd = null;
+            exitAdReady = false;
+            resolvePendingExit();
+            updateVisibility(false);
+        } else if (initialized && consent != null && consent.canRequestAds()) {
+            loadNativeAd();
+            loadInterstitialAd();
+            loadExitAd();
+            scheduleInterstitial();
+            updatePrivacy();
+        } else {
+            maybeLoad();
+        }
+    }
+
     private void maybeLoad() {
-        if (initialized || destroyed || consent == null || !consent.canRequestAds()) return;
+        if (initialized || destroyed || suppressed || consent == null || !consent.canRequestAds()) return;
         initialized = true;
         MobileAds.initialize(activity, status -> activity.runOnUiThread(() -> {
             if (!activityAlive()) return;
@@ -216,7 +244,7 @@ public final class HannunAds {
     }
 
     private void scheduleInterstitial() {
-        if (!initialized || !resumed || interstitialScheduled || interstitialShownCount >= INTERSTITIAL_MAX_PER_SESSION) return;
+        if (!initialized || suppressed || !resumed || interstitialScheduled || interstitialShownCount >= INTERSTITIAL_MAX_PER_SESSION) return;
         long now = System.currentTimeMillis();
         long first = Math.max(0L, appStartedAt + INTERSTITIAL_FIRST_DELAY_MS - now);
         long cooldown = lastInterstitialShownAt == 0L ? 0L : Math.max(0L, lastInterstitialShownAt + INTERSTITIAL_COOLDOWN_MS - now);
@@ -347,7 +375,7 @@ public final class HannunAds {
     }
 
     private void updateVisibility(boolean hasAd) {
-        section.setVisibility(hasAd || privacy.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE);
+        section.setVisibility(!suppressed && (hasAd || privacy.getVisibility() == View.VISIBLE) ? View.VISIBLE : View.GONE);
     }
 
     private void destroyBottomAd() {
@@ -358,7 +386,7 @@ public final class HannunAds {
     }
 
     private boolean activityAlive() {
-        return !destroyed && !activity.isFinishing() && !activity.isDestroyed();
+        return !destroyed && !suppressed && !activity.isFinishing() && !activity.isDestroyed();
     }
 
     public void destroy() {
