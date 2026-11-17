@@ -9,7 +9,7 @@
 - Google Mobile Ads `25.5.0`
 - Google UMP `4.0.0`
 
-앱은 네이티브, 적응형 배너, 전면, 종료 300×250 지면별로 각각 발급된 ID를 `HannunAdConfig`에 전달해야 합니다. Debug 리소스에는 Google 공식 테스트 ID를 사용합니다.
+앱은 네이티브, 전면, 종료 300×250 지면별로 각각 발급된 ID를 `HannunAdConfig`에 전달해야 합니다. 적응형 배너 대체를 사용할 앱은 배너 전용 ID도 전달합니다. 아직 배너 ID가 발급되지 않은 앱은 두 번째 인수에 `null`을 전달하며, 라이브러리는 다른 지면 ID를 재사용하지 않고 네이티브 광고 실패 시 지면을 숨깁니다. Debug 리소스에는 Google 공식 테스트 ID를 사용합니다.
 
 ```java
 HannunAdConfig config = new HannunAdConfig(

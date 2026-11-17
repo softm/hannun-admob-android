@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.github.softm"
-version = "1.0.0"
+version = "1.0.1"
 
 android {
     namespace = "softm.hannun.ads"

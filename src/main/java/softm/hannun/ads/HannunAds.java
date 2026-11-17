@@ -150,7 +150,11 @@ public final class HannunAds {
     }
 
     private void loadAdaptiveBannerFallback() {
-        if (!activityAlive() || bottomBanner != null) return;
+        if (!activityAlive() || bottomBanner != null || config.adaptiveBannerUnitId == null) {
+            host.removeAllViews();
+            updateVisibility(false);
+            return;
+        }
         host.post(() -> {
             if (!activityAlive() || bottomBanner != null || nativeAd != null) return;
             int widthPx = host.getWidth();

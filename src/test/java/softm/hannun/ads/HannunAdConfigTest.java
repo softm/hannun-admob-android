@@ -13,8 +13,13 @@ public class HannunAdConfigTest {
         assertEquals("exit", config.exitBannerUnitId);
     }
 
+    @Test public void allowsMissingOptionalFallbackBanner() {
+        HannunAdConfig config = new HannunAdConfig("native", " ", "interstitial", "exit");
+        assertEquals(null, config.adaptiveBannerUnitId);
+    }
+
     @Test(expected = IllegalArgumentException.class)
-    public void rejectsBlankIds() {
-        new HannunAdConfig("native", " ", "interstitial", "exit");
+    public void rejectsBlankRequiredIds() {
+        new HannunAdConfig(" ", null, "interstitial", "exit");
     }
 }
