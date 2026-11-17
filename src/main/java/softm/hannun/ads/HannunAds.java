@@ -257,6 +257,10 @@ public final class HannunAds {
     }
 
     public void showExitConfirmation() {
+        showExitConfirmation(activity::finish);
+    }
+
+    public void showExitConfirmation(@NonNull Runnable onExit) {
         if (!activityAlive()) return;
         FrameLayout slot = new FrameLayout(activity);
         LinearLayout loading = new LinearLayout(activity);
@@ -274,7 +278,7 @@ public final class HannunAds {
                 .setMessage("계속 이용하거나 앱을 종료할 수 있습니다.")
                 .setView(slot)
                 .setNegativeButton("계속 이용", null)
-                .setPositiveButton("종료", (d, which) -> activity.finish())
+                .setPositiveButton("종료", (d, which) -> onExit.run())
                 .create();
         Runnable enableExit = () -> { if (dialog.isShowing()) dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); };
         dialog.setOnShowListener(d -> {
