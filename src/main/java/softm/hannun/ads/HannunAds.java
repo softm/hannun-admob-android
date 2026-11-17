@@ -158,6 +158,10 @@ public final class HannunAds {
     }
 
     private void loadNativeAd() {
+        if (config.nativeUnitId == null) {
+            loadAdaptiveBannerFallback();
+            return;
+        }
         if (!activityAlive()) return;
         new AdLoader.Builder(activity, config.nativeUnitId)
                 .forNativeAd(ad -> {
@@ -213,6 +217,7 @@ public final class HannunAds {
     }
 
     private void loadInterstitialAd() {
+        if (config.interstitialUnitId == null) return;
         if (interstitialLoading || interstitialAd != null || !activityAlive()) return;
         interstitialLoading = true;
         InterstitialAd.load(activity, config.interstitialUnitId, new AdRequest.Builder().build(), new InterstitialAdLoadCallback() {
@@ -260,6 +265,7 @@ public final class HannunAds {
     }
 
     private void loadExitAd() {
+        if (config.exitBannerUnitId == null) return;
         if (!activityAlive() || exitAd != null) return;
         AdView ad = new AdView(activity);
         ad.setAdSize(AdSize.MEDIUM_RECTANGLE);

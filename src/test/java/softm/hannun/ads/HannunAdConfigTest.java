@@ -18,8 +18,10 @@ public class HannunAdConfigTest {
         assertEquals(null, config.adaptiveBannerUnitId);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void rejectsBlankRequiredIds() {
-        new HannunAdConfig(" ", null, "interstitial", "exit");
+    @Test public void disablesPlacementsWithMissingIds() {
+        HannunAdConfig config = new HannunAdConfig(" ", null, "", null);
+        assertEquals(null, config.nativeUnitId);
+        assertEquals(null, config.interstitialUnitId);
+        assertEquals(null, config.exitBannerUnitId);
     }
 }
