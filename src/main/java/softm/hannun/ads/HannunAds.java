@@ -38,7 +38,6 @@ import com.google.android.ump.UserMessagingPlatform;
 public final class HannunAds {
     static final long INTERSTITIAL_FIRST_DELAY_MS = 75_000L;
     static final long INTERSTITIAL_COOLDOWN_MS = 180_000L;
-    static final long EXIT_AD_WAIT_TIMEOUT_MS = 5_000L;
     static final int INTERSTITIAL_MAX_PER_SESSION = 3;
 
     private final Activity activity;
@@ -283,7 +282,6 @@ public final class HannunAds {
                 if (exitAd == ad) { exitAd = null; exitAdReady = false; }
                 ad.destroy();
                 if (pendingExitSlot != null) { pendingExitSlot.removeAllViews(); pendingExitSlot.setVisibility(View.GONE); }
-                resolvePendingExit();
                 handler.postDelayed(HannunAds.this::loadExitAd, INTERSTITIAL_COOLDOWN_MS);
             }
         });
@@ -314,15 +312,18 @@ public final class HannunAds {
                 .setNegativeButton("계속 이용", null)
                 .setPositiveButton("종료", (d, which) -> onExit.run())
                 .create();
-        Runnable enableExit = () -> { if (dialog.isShowing()) dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); };
+        Runnable enableExit = () -> {
+            boolean adAttached = slot.getChildCount() == 1 && slot.getChildAt(0) instanceof AdView;
+            if (dialog.isShowing() && isExitAllowed(adAttached)) {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+            }
+        };
         dialog.setOnShowListener(d -> {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-            if (!initialized) { slot.removeAllViews(); slot.setVisibility(View.GONE); enableExit.run(); }
+            if (!initialized) { slot.removeAllViews(); slot.setVisibility(View.GONE); }
             else { pendingExitSlot = slot; pendingExitResolved = enableExit; if (exitAdReady) attachPendingExitAd(); else loadExitAd(); }
-            handler.postDelayed(enableExit, EXIT_AD_WAIT_TIMEOUT_MS);
         });
         dialog.setOnDismissListener(d -> {
-            handler.removeCallbacks(enableExit);
             if (pendingExitSlot == slot) { pendingExitSlot = null; pendingExitResolved = null; }
             for (int i = 0; i < slot.getChildCount(); i++) if (slot.getChildAt(i) instanceof AdView) ((AdView) slot.getChildAt(i)).destroy();
             slot.removeAllViews();
@@ -347,6 +348,10 @@ public final class HannunAds {
         pendingExitSlot = null;
         pendingExitResolved = null;
         if (resolved != null) resolved.run();
+    }
+
+    static boolean isExitAllowed(boolean exitAdAttached) {
+        return exitAdAttached;
     }
 
     private NativeAdView render(NativeAd ad) {
