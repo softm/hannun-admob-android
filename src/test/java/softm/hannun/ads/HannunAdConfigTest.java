@@ -1,7 +1,6 @@
 package softm.hannun.ads;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -27,8 +26,11 @@ public class HannunAdConfigTest {
         assertEquals(null, config.exitBannerUnitId);
     }
 
-    @Test public void enablesExitOnlyAfterExitAdIsAttached() {
-        assertFalse(HannunAds.isExitAllowed(false));
+    @Test public void permitsExitWithoutConsentOrAnAvailableAd() {
+        assertTrue(HannunAds.isExitAllowed(false));
+    }
+
+    @Test public void permitsExitWithAnAttachedAd() {
         assertTrue(HannunAds.isExitAllowed(true));
     }
 }
