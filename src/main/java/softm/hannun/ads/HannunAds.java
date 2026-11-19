@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -282,6 +281,7 @@ public final class HannunAds {
                 if (exitAd == ad) { exitAd = null; exitAdReady = false; }
                 ad.destroy();
                 if (pendingExitSlot != null) { pendingExitSlot.removeAllViews(); pendingExitSlot.setVisibility(View.GONE); }
+                resolvePendingExit();
                 handler.postDelayed(HannunAds.this::loadExitAd, INTERSTITIAL_COOLDOWN_MS);
             }
         });
@@ -293,18 +293,11 @@ public final class HannunAds {
     }
 
     public void showExitConfirmation(@NonNull Runnable onExit) {
-        if (!activityAlive()) return;
+        // Suppressing ads must never suppress the app's exit controls.
+        if (destroyed || activity.isFinishing() || activity.isDestroyed()) return;
         FrameLayout slot = new FrameLayout(activity);
-        LinearLayout loading = new LinearLayout(activity);
-        loading.setOrientation(LinearLayout.VERTICAL);
-        loading.setGravity(Gravity.CENTER);
-        ProgressBar progress = new ProgressBar(activity);
-        loading.addView(progress, new LinearLayout.LayoutParams(dp(44), dp(44)));
-        TextView text = new TextView(activity);
-        text.setText("광고를 불러오는 중입니다.");
-        text.setPadding(0, dp(12), 0, 0);
-        loading.addView(text, new LinearLayout.LayoutParams(-2, -2));
-        slot.addView(loading, new FrameLayout.LayoutParams(-1, dp(250)));
+        // Reserve space only after an ad has loaded; offline/no-fill is a normal exit.
+        slot.setVisibility(View.GONE);
         AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle("앱을 종료하시겠습니까?")
                 .setMessage("계속 이용하거나 앱을 종료할 수 있습니다.")
@@ -319,8 +312,8 @@ public final class HannunAds {
             }
         };
         dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-            if (!initialized) { slot.removeAllViews(); slot.setVisibility(View.GONE); }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(isExitAllowed(exitAdReady));
+            if (!initialized || suppressed || config.exitBannerUnitId == null) { slot.removeAllViews(); slot.setVisibility(View.GONE); }
             else { pendingExitSlot = slot; pendingExitResolved = enableExit; if (exitAdReady) attachPendingExitAd(); else loadExitAd(); }
         });
         dialog.setOnDismissListener(d -> {
@@ -340,6 +333,7 @@ public final class HannunAds {
         exitAdReady = false;
         slot.removeAllViews();
         slot.addView(ad, new FrameLayout.LayoutParams(dp(300), dp(250), Gravity.CENTER));
+        slot.setVisibility(View.VISIBLE);
         resolvePendingExit();
     }
 
@@ -351,7 +345,8 @@ public final class HannunAds {
     }
 
     static boolean isExitAllowed(boolean exitAdAttached) {
-        return exitAdAttached;
+        // Consent, ad availability and the network must never gate leaving the app.
+        return true;
     }
 
     private NativeAdView render(NativeAd ad) {
